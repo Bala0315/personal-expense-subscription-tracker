@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Monthly Budget — ExpenseTrack{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <h1 class="h4 fw-bold mb-1">Monthly Budget Management</h1>
+  <p class="text-muted small mb-0">
+    Remaining Budget = Monthly Budget &minus; Total Monthly Spending (Expenses + Active Subscriptions)
+  </p>
+</div>
+
+{% if snapshot.budget_limit > 0 and snapshot.usage_pct >= 100 %}
+<div class="alert alert-danger" role="alert">
+  <strong>Alert:</strong> Your monthly spending of ₹{{ "%.2f"|format(snapshot.total_monthly_spending) }} has exceeded your ₹{{ "%.2f"|format(snapshot.budget_limit) }} limit by ₹{{ "%.2f"|format(snapshot.total_monthly_spending - snapshot.budget_limit) }}.
+</div>
+{% elif snapshot.budget_limit > 0 and snapshot.usage_pct >= 80 %}
+<div class="alert alert-warning" role="alert">
+  <strong>Warning:</strong> You have reached {{ snapshot.usage_pct }}% of your monthly budget limit.
+</div>
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card border">
+      <div class="card-header bg-white fw-semibold">Set or Update Monthly Budget</div>
+      <div class="card-body">
+        <form method="post">
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-medium">Month</label>
+              <select name="month" class="form-select">
+                {% for m in range(1, 13) %}
+                <option value="{{ m }}" {% if snapshot.month == m %}selected{% endif %}>{{ "%02d"|format(m) }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-medium">Year</label>
+              <input type="number" name="year" value="{{ snapshot.year }}" min="2020" max="2050" class="form-control font-monospace" required />
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-medium">Monthly Budget Limit (₹)</label>
+            <input type="number" name="budget_limit" value="{{ "%.2f"|format(snapshot.budget_limit) if snapshot.budget_limit > 0 else '25000.00' }}" min="1" step="0.01" class="form-control font-monospace" required />
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Save Budget Limit</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card border h-100">
+      <div class="card-header bg-white fw-semibold">
+        Budget Breakdown ({{ "%04d-%02d"|format(snapshot.year, snapshot.month) }})
+      </div>
+      <div class="card-body">
+        <div class="row g-3 mb-3">
+          <div class="col-4">
+            <div class="text-muted small">Budget Limit</div>
+            <div class="h5 fw-bold font-monospace">₹{{ "%.2f"|format(snapshot.budget_limit) }}</div>
+          </div>
+          <div class="col-4">
+            <div class="text-muted small">Total Spending</div>
+            <div class="h5 fw-bold font-monospace">₹{{ "%.2f"|format(snapshot.total_monthly_spending) }}</div>
+          </div>
+          <div class="col-4">
+            <div class="text-muted small">Remaining</div>
+            <div class="h5 fw-bold font-monospace {% if snapshot.remaining_budget < 0 %}text-danger{% else %}text-success{% endif %}">
+              ₹{{ "%.2f"|format(snapshot.remaining_budget) }}
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-2 d-flex justify-content-between small">
+          <span>Budget Usage</span>
+          <span class="font-monospace fw-semibold">{{ snapshot.usage_pct }}%</span>
+        </div>
+        <div class="progress mb-4" style="height: 12px;">
+          <div
+            class="progress-bar {% if snapshot.usage_pct >= 100 %}bg-danger{% elif snapshot.usage_pct >= 80 %}bg-warning{% else %}bg-primary{% endif %}"
+            role="progressbar"
+            style="width: {{ [snapshot.usage_pct, 100]|min }}%"
+          ></div>
+        </div>
+
+        <div class="chart-box-sm">
+          <canvas id="budgetPageDoughnut"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script id="chart-payload" type="application/json">
+  {{ {
+    "budgetLimit": snapshot.budget_limit,
+    "totalSpent": snapshot.total_monthly_spending
+  } | tojson }}
+</script>
+{% endblock %}

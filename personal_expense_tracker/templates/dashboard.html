@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — ExpenseTrack{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <h1 class="h4 fw-bold mb-1">Financial Dashboard</h1>
+    <p class="text-muted small mb-0">Overview for {{ "%04d-%02d"|format(snapshot.year, snapshot.month) }}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('add_expense') }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i> Add Expense
+    </a>
+    <a href="{{ url_for('export_csv', type='summary', month=snapshot.month, year=snapshot.year) }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export Summary CSV
+    </a>
+  </div>
+</div>
+
+{% if snapshot.budget_limit > 0 and snapshot.usage_pct >= 100 %}
+<div class="alert alert-danger d-flex align-items-center" role="alert">
+  <i class="bi bi-exclamation-octagon-fill me-2"></i>
+  <div>
+    <strong>Budget Exceeded:</strong> Monthly spending (₹{{ "%.2f"|format(snapshot.total_monthly_spending) }}) has exceeded your ₹{{ "%.2f"|format(snapshot.budget_limit) }} budget ({{ snapshot.usage_pct }}%).
+  </div>
+</div>
+{% elif snapshot.budget_limit > 0 and snapshot.usage_pct >= 80 %}
+<div class="alert alert-warning d-flex align-items-center" role="alert">
+  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+  <div>
+    <strong>Budget Warning:</strong> You have used {{ snapshot.usage_pct }}% of your ₹{{ "%.2f"|format(snapshot.budget_limit) }} monthly budget.
+  </div>
+</div>
+{% endif %}
+
+<!-- KPI Summary Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl">
+    <div class="card border h-100">
+      <div class="card-body">
+        <div class="text-muted small mb-1"><i class="bi bi-wallet2 text-primary me-1"></i>Monthly Expenses</div>
+        <div class="h4 fw-bold mb-0 font-monospace">₹{{ "%.2f"|format(snapshot.monthly_expenses) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl">
+    <div class="card border h-100">
+      <div class="card-body">
+        <div class="text-muted small mb-1"><i class="bi bi-arrow-repeat text-primary me-1"></i>Monthly Subscriptions</div>
+        <div class="h4 fw-bold mb-0 font-monospace">₹{{ "%.2f"|format(snapshot.monthly_subscription_cost) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl">
+    <div class="card border h-100">
+      <div class="card-body">
+        <div class="text-muted small mb-1"><i class="bi bi-bullseye text-primary me-1"></i>Monthly Budget</div>
+        <div class="h4 fw-bold mb-0 font-monospace">₹{{ "%.2f"|format(snapshot.budget_limit) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl">
+    <div class="card border h-100">
+      <div class="card-body">
+        <div class="text-muted small mb-1"><i class="bi bi-cash-coin text-primary me-1"></i>Remaining Budget</div>
+        <div class="h4 fw-bold mb-0 font-monospace {% if snapshot.remaining_budget < 0 %}text-danger{% else %}text-success{% endif %}">
+          ₹{{ "%.2f"|format(snapshot.remaining_budget) }}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl">
+    <div class="card border h-100">
+      <div class="card-body">
+        <div class="text-muted small mb-1"><i class="bi bi-list-check text-primary me-1"></i>Transactions</div>
+        <div class="h4 fw-bold mb-0 font-monospace">{{ snapshot.tx_count }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Visual Summary Charts -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-7">
+    <div class="card border h-100">
+      <div class="card-header bg-white fw-semibold">Expenses by Category</div>
+      <div class="card-body chart-box">
+        <canvas id="dashboardCategoryPie"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card border h-100">
+      <div class="card-header bg-white fw-semibold">Budget Usage ({{ snapshot.usage_pct }}%)</div>
+      <div class="card-body chart-box">
+        <canvas id="dashboardBudgetDoughnut"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Expenses -->
+<div class="card border">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">Recent Expenses</span>
+    <a href="{{ url_for('expenses') }}" class="small text-decoration-none">View All</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Date</th>
+          <th>Title</th>
+          <th>Category</th>
+          <th>Payment Method</th>
+          <th class="text-end">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for exp in snapshot.recent_expenses %}
+        <tr>
+          <td class="font-monospace small">{{ exp.date }}</td>
+          <td class="fw-medium">{{ exp.title }}</td>
+          <td>{{ exp.category }}</td>
+          <td class="text-muted small">{{ exp.payment_method }}</td>
+          <td class="text-end font-monospace fw-semibold">₹{{ "%.2f"|format(exp.amount) }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="text-center text-muted py-4">No expenses logged yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script id="chart-payload" type="application/json">
+  {{ {
+    "categoryLabels": snapshot.category_labels,
+    "categoryValues": snapshot.category_values,
+    "budgetLimit": snapshot.budget_limit,
+    "totalSpent": snapshot.total_monthly_spending
+  } | tojson }}
+</script>
+{% endblock %}

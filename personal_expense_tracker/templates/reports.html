@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Reports & Analytics — ExpenseTrack{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <h1 class="h4 fw-bold mb-1">Reports &amp; Spending Analytics</h1>
+    <p class="text-muted small mb-0">Live database aggregations for {{ "%04d-%02d"|format(snapshot.year, snapshot.month) }}</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{{ url_for('export_csv', type='expenses', month=snapshot.month, year=snapshot.year) }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-download me-1"></i> Expenses CSV
+    </a>
+    <a href="{{ url_for('export_csv', type='subscriptions', month=snapshot.month, year=snapshot.year) }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-download me-1"></i> Subscriptions CSV
+    </a>
+    <a href="{{ url_for('export_csv', type='summary', month=snapshot.month, year=snapshot.year) }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-download me-1"></i> Summary CSV
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card border h-100">
+      <div class="card-header bg-white fw-semibold">1. Expenses by Category (Pie Chart)</div>
+      <div class="card-body chart-box">
+        <canvas id="reportsPieChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card border h-100">
+      <div class="card-header bg-white fw-semibold">2. Monthly Expenses (Bar Chart)</div>
+      <div class="card-body chart-box">
+        <canvas id="reportsBarChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card border h-100">
+      <div class="card-header bg-white fw-semibold">3. Budget Usage (Doughnut Chart)</div>
+      <div class="card-body chart-box">
+        <canvas id="reportsDoughnutChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card border h-100">
+      <div class="card-header bg-white fw-semibold">4. Daily Spending Trends (Line Chart)</div>
+      <div class="card-body chart-box">
+        <canvas id="reportsLineChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script id="chart-payload" type="application/json">
+  {{ {
+    "categoryLabels": snapshot.category_labels,
+    "categoryValues": snapshot.category_values,
+    "monthlyLabels": snapshot.monthly_labels,
+    "monthlyValues": snapshot.monthly_values,
+    "dailyLabels": snapshot.daily_labels,
+    "dailyValues": snapshot.daily_values,
+    "budgetLimit": snapshot.budget_limit,
+    "totalSpent": snapshot.total_monthly_spending
+  } | tojson }}
+</script>
+{% endblock %}

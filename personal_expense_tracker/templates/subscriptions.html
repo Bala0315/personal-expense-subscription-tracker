@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Subscriptions — ExpenseTrack{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <h1 class="h4 fw-bold mb-1">Subscription Management</h1>
+    <p class="text-muted small mb-0">
+      Normalized Monthly Cost: <strong class="font-monospace text-primary">₹{{ "%.2f"|format(monthly_total) }}</strong>
+      &middot; Projected Annual: <strong class="font-monospace">₹{{ "%.2f"|format(annual_total) }}</strong>
+    </p>
+  </div>
+  <a href="{{ url_for('export_csv', type='subscriptions') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-download me-1"></i> Export Subscriptions CSV
+  </a>
+</div>
+
+<div class="row g-4">
+  <!-- Add / Edit Subscription Form -->
+  <div class="col-lg-4">
+    <div class="card border">
+      <div class="card-header bg-white fw-semibold" id="subFormHeading">Add Subscription</div>
+      <div class="card-body">
+        <form method="post" id="subscriptionForm">
+          <input type="hidden" name="sub_id" id="sub_id" value="" />
+          <div class="mb-2">
+            <label class="form-label small fw-medium">Subscription Name *</label>
+            <input type="text" name="name" id="sub_name" required class="form-control form-control-sm" placeholder="e.g. Netflix, Spotify" />
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label small fw-medium">Amount (₹) *</label>
+              <input type="number" name="amount" id="sub_amount" required min="0.01" step="0.01" class="form-control form-control-sm font-monospace" />
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-medium">Billing Cycle *</label>
+              <select name="billing_cycle" id="sub_cycle" class="form-select form-select-sm">
+                {% for cycle in billing_cycles %}
+                <option value="{{ cycle }}">{{ cycle }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label small fw-medium">Category *</label>
+              <select name="category" id="sub_category" class="form-select form-select-sm">
+                {% for cat in categories %}
+                <option value="{{ cat }}">{{ cat }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-medium">Status *</label>
+              <select name="status" id="sub_status" class="form-select form-select-sm">
+                {% for st in statuses %}
+                <option value="{{ st }}">{{ st }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-medium">Start Date *</label>
+              <input type="date" name="start_date" id="sub_start" required value="{{ today }}" class="form-control form-control-sm" />
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-medium">Next Payment *</label>
+              <input type="date" name="next_payment_date" id="sub_next" required value="{{ today }}" class="form-control form-control-sm" />
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm flex-grow-1" id="subSubmitBtn">Save Subscription</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="subCancelBtn" onclick="resetSubscriptionForm()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subscription Table -->
+  <div class="col-lg-8">
+    <div class="card border">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Service</th>
+              <th>Cycle</th>
+              <th>Next Billing</th>
+              <th>Status</th>
+              <th class="text-end">Billed</th>
+              <th class="text-end">Monthly Eq.</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sub in subscriptions %}
+            <tr>
+              <td>
+                <div class="fw-medium">{{ sub.name }}</div>
+                <div class="text-muted small">{{ sub.category }}</div>
+              </td>
+              <td class="small">{{ sub.billing_cycle }}</td>
+              <td class="font-monospace small">{{ sub.next_payment_date }}</td>
+              <td class="small fw-medium {% if sub.status == 'Active' %}text-success{% else %}text-secondary{% endif %}">
+                {{ sub.status }}
+              </td>
+              <td class="text-end font-monospace">₹{{ "%.2f"|format(sub.amount) }}</td>
+              <td class="text-end font-monospace text-primary fw-semibold">₹{{ "%.2f"|format(sub.monthly_equivalent) }}</td>
+              <td class="text-end text-nowrap">
+                <button
+                  type="button"
+                  class="btn btn-outline-primary btn-sm"
+                  onclick='editSubscription({{ sub | tojson }})'
+                >
+                  Edit
+                </button>
+                <form method="post" action="{{ url_for('delete_subscription', sub_id=sub.id) }}" class="d-inline" onsubmit="return confirm('Delete this subscription?');">
+                  <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="7" class="text-center text-muted py-4">No subscriptions tracked yet.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

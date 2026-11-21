@@ -1,0 +1,6 @@
+{
+  "name": "LuminaGrid — Automatic Street Light System",
+  "description": "Interactive automatic street lighting simulation and municipal energy management platform responding to ambient light, weather conditions, and real-time traffic motion.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
